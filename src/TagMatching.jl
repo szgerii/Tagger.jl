@@ -2,9 +2,10 @@ module TagMatching
 
 include("utils.jl")
 
-include("Tag.jl")
+include("TagType.jl")
 #include("Rule.jl")
-include("definitions.jl")
+include("eq.jl")
+include("defaults.jl")
 include("match.jl")
 
 end

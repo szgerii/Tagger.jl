@@ -2,22 +2,24 @@ include("src/TagMatching.jl")
 
 using .TagMatching
 
-abstract type ASTNode <: TagType end
+@def_tagtype ASTNode
 
 struct CallNode <: ASTNode end
 struct ReturnNode <: ASTNode end
 struct ForNode <: ASTNode end
 
-@def_eqs ASTNode (:call, CallNode) (:return, ReturnNode) (:for, ForNode)
+@def_eqs(
+    ASTNode,
+    (:call, CallNode),
+    (:return, ReturnNode),
+    (:for, ForNode)
+)
 
-abstract type TypeTag <: TagType end
+@def_tagtype TypeTag VoidTag
 
 struct IntTag <: TypeTag end
 struct StringTag <: TypeTag end
 struct BoolTag <: TypeTag end
-struct VoidTag <: TypeTag end
-
-TagMatching.get_default_tag(::Type{TypeTag}) = VoidTag
 
 @def_eqs TypeTag (:int32, IntTag) (:int64, IntTag) (:string, StringTag) (:bool, BoolTag)
 
@@ -42,13 +44,13 @@ ast_def_node = tag_match(ASTNode, :(
 ))
 @print_var ast_def_node
 
-int_tag = tag_match(TypeTag, :int32)
-@print_var int_tag
-int_tag = tag_match(TypeTag, :int64)
-@print_var int_tag
+int32_tag = tag_match(TypeTag, :int32)
+@print_var int32_tag
+int64_tag = tag_match(TypeTag, :int64)
+@print_var int64_tag
 string_tag = tag_match(TypeTag, :string)
 @print_var string_tag
 bool_tag = tag_match(TypeTag, :bool)
 @print_var bool_tag
-void_tag = tag_match(TypeTag, :void)
-@print_var void_tag
+void_def_tag = tag_match(TypeTag, :void)
+@print_var void_def_tag
