@@ -1,11 +1,9 @@
-module TagMatching
+module Tagger
 
 include("utils.jl")
-
 include("TagType.jl")
-include("Rule.jl")
-include("eq.jl")
 include("rules.jl")
+include("eq.jl")
 include("match.jl")
 
 end
