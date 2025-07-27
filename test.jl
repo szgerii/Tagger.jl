@@ -5,6 +5,7 @@ using .TagMatching
 @def_tagtype ASTNode
 
 struct CallNode <: ASTNode end
+struct CallNoArgNode <: ASTNode end
 struct ReturnNode <: ASTNode end
 struct ForNode <: ASTNode end
 
@@ -15,7 +16,10 @@ struct ForNode <: ASTNode end
     (:for, ForNode)
 )
 
+@def_pre_rules ASTNode Expr (CallNoArgNode, x -> x.head == :call && length(x.args) == 1)
+
 @def_tagtype TypeTag VoidTag
+abstract type TypeTag <: TagType end
 
 struct IntTag <: TypeTag end
 struct StringTag <: TypeTag end
@@ -29,8 +33,10 @@ macro print_var(var)
     end
 end
 
-call_node = tag_match(ASTNode, :(a + 2))
+call_node = tag_match(ASTNode, :(println("asd")))
 @print_var call_node
+call_argless_node = tag_match(ASTNode, :(println()))
+@print_var call_argless_node
 for_node = tag_match(ASTNode, :(
     for i in 1:5
     end

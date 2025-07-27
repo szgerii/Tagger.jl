@@ -4,9 +4,23 @@ function tag_match(::Type{T}, val::V)::Union{Type{<:T},Nothing} where {T<:TagTyp
     @assert T != TagType "Trying to match to the base TagType type"
     @assert isabstracttype(T) "Trying to match to concrete tag instead of an abstract TagType"
 
-    eq_result = tag_match_eq(T, val)
-    if !isnothing(eq_result)
-        return eq_result
+    if val isa Expr
+        Base.remove_linenums!(val)
+    end
+
+    result = pre_rule_match(T, val)
+    if !isnothing(result)
+        return result
+    end
+
+    result = tag_match_eq(T, val)
+    if !isnothing(result)
+        return result
+    end
+
+    result = post_rule_match(T, val)
+    if !isnothing(result)
+        return result
     end
 
     get_default_tag(T)

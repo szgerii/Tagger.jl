@@ -1,8 +1,8 @@
-export TagType, DefaultTag, @def_tagtype
+export TagType, @def_tagtype
 
 abstract type TagType end
 
-struct DefaultTag <: TagType end
+get_default_tag(::Type{T}) where {T<:TagType} = nothing
 
 gen_tagtype(name::Symbol) = quote
     abstract type $(esc(name)) <: TagType end
