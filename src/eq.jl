@@ -44,7 +44,7 @@ macro def_eqs(T::Symbol, eq_rules::Vararg{Expr})
         result_sym = rule.args[2]
         @assert_type result_sym Symbol
 
-        push!(fn_defs, :(TagMatching.eq_match(::Type{$T}, ::Type{Val{$(QuoteNode(eq_val))}}) = $result_sym))
+        push!(fn_defs, :(Tagger.eq_match(::Type{$T}, ::Type{Val{$(QuoteNode(eq_val))}}) = $result_sym))
     end
 
     esc(Expr(:block, fn_defs...))
