@@ -90,6 +90,7 @@ As these types will be defined in the surrounding module, it's a good idea to ei
 Although it's recommended to use `@def_tagtype` for defining new tag types, it can be limiting as its definitions are missed by IntelliSense in VS Code for example (this is something I want to fix later if possible). You can also define tag types manually, which in addition to being explicit towards the language server, also lets you tweak some of the default behaviors of the tag matching system.
 
 The `@def_tagtype ExprNode DefaultTag` macro call roughly expands to the following definitions:
+
 ```julia
 abstract type ExprNode <: TagType end
 eq_match(::Type{ExprNode}, ::Type{Val{T}}) where T = nothing
@@ -104,7 +105,7 @@ This sets up a couple of things:
 
 1. Defines an ExprNode abstract type, which its tags will inherit from
 1. Defines a method for `eq_match`, which is just a fallback for when no equality rules are matched for a given value. This can be potentially overriden during manual definition to (for example) short-circuit the tag matching system if there are no post-rules for the given tag.
-1. Define a new tag of tag type `ExprNode` 
+1. Define a new tag of tag type `ExprNode`
 1. Register this new tag as the default tag for the tag type. This could also be overridden to perform some extra logic before a default tag is returned.
 
 Keep in mind that tweaking this process during manual definition can potentially rely heavily on the internal implementation of the package, which may change in the future, so only do this carefully. Most things can be achieved without messing with this flow.
@@ -192,6 +193,7 @@ Equality rules are checked in-between pre- and post-rules.
 
 First, the value that is being matched is first transformed through a projection function, which is `ex -> ex.head` for `Expr`-s and simply `identity` for all other types.
 This can be redefined by adding a method to `get_eq_projection` like:
+
 ```julia
 Tagger.get_eq_projection(::Type{ExprNode}, ::Type{Expr}) = ex -> ex.args[1]
 ```
@@ -199,6 +201,7 @@ Tagger.get_eq_projection(::Type{ExprNode}, ::Type{Expr}) = ex -> ex.args[1]
 Each `(T,V)` pair (where `T` is the tag type and `V` is the value type) has exactly one projection function.
 
 After the projection, it's then matched through a set of equality rules that can be defined like:
+
 ```julia
 @def_eqs(
     ExprNode,
@@ -224,7 +227,7 @@ In the example codes, module specifications have been omitted, but the generated
 
 ### Predicate rules
 
-Pre- and post-rules are resolved in the exact same manner, just at different times, so their implementation matches exactly. For simplicity, pre-rules will be used from here on, but you can simply replace the *pre* word with *post* to get the function names used for post-rules.
+Pre- and post-rules are resolved in the exact same manner, just at different times, so their implementation matches exactly. For simplicity, pre-rules will be used from here on, but you can simply replace the _pre_ word with _post_ to get the function names used for post-rules.
 
 The main function which handles pre-rule matching is `pre_rule_match`. By default, this function has a generic fallback method defined like:
 
@@ -234,7 +237,7 @@ pre_rule_match(::Type{T}, val::Any) where T = nothing
 
 This basically means that if no pre rules are defined for the given `(T,V)` pair, `nothing` will be returned as a fallback and the matching system will move on to the next stage.
 
-`@def_rules` invocations (along with the shorthands) will generate extra methods for this function (one for each `(T,V)` pair). The body of this method will be an `if...elseif` chain of the predicates, each block simply returning its associated tag upon the condition evaluating to true. This expansion procedure is illustrated in the following snippet:
+`@def_rules` invocations (along with the shorthands) will generate extra methods for this function (one for each `(T,V)` pair). The body of this method will be an `if...if...` chain of the predicates, each block simply returning its associated tag upon the condition evaluating to true. This expansion procedure is illustrated in the following snippet:
 
 ```julia
 @def_pre_rules(
@@ -250,9 +253,9 @@ This basically means that if no pre rules are defined for the given `(T,V)` pair
 function pre_rule_match(::Type{ExprArgTags}, val::Expr)
     if (ex -> length(ex.args) == 0 || ex.args == [nothing])(val)
         return NoArgs
-    elseif (ex -> length(ex.args) % 2 == 0)(val)
+    if (ex -> length(ex.args) % 2 == 0)(val)
         return EvenNumOfArgs
-    elseif (ex -> length(ex.args) % 2 == 1)(val)
+    if (ex -> length(ex.args) % 2 == 1)(val)
         return OddNumOfArgs
     end
 
@@ -289,4 +292,4 @@ end
 
 This lets `tag_match` simply call `eq_match(T, Val{proj_val})` to get the result.
 
-Keep in mind, that a general `eq_match` method is generated for each tag type which will return `nothing` and is called if no `Val{...}` matches the projected value. (see [A closer look at tag type definition](#a-closer-look-at-tag-type-definition)).
+Keep in mind, that a general `eq_match` method is generated for each tag type which will return `nothing` and is called if no `Val{...}` matches the projected value (see [A closer look at tag type definition](#a-closer-look-at-tag-type-definition)).
