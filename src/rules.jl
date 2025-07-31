@@ -3,10 +3,34 @@ export @def_rules, @def_pre_rules, @def_post_rules
 pre_rule_match(::Type{T}, val) where T = nothing
 post_rule_match(::Type{T}, val) where T = nothing
 
-macro def_rules(stage::Symbol, T::Symbol, In::Symbol, rules::Expr...)
+"""
+    @def_rules stage TagType InputType rules...
+
+Defines a new pre- or post-ruleset for a given tag type and input type.
+Keep in mind, that only one ruleset can be defined per stage-tag type-input type triplet and subsequent usage will probably redefine the previous one.
+The rule definition order matters, as they will be evaluated in order of definition and the tag matching system will stop after the first successful match.
+
+# Arguments
+- `stage::Symbol`: The stage to check the rules in (either `pre` or `post`)
+- `T::Union{Symbol,Expr}`: The tag type to define the rules for
+- `In::Union{Symbol,Expr}`: The input type to define the rules for (the type the predicates will receive as their parameter)
+- `rules::Expr...`: A vararg of tuples of (Tag <: TagType, predicate::In -> Bool) pairs, which define rules with the following meaning:
+    if for a given value::In, predicate(value) returns true, it will matched to Tag
+
+# Examples
+```jldoctest
+julia> MyTagType <: TagType && TwoArgs <: MyTagType
+true
+
+julia> @def_rules pre MyTagType Expr (TwoArgs, (ex::Expr) -> length(ex.args) == 2)
+
+julia> tag_match(MyTagType, Expr(:head_sym, :first_arg, :second_arg))
+TwoArgs
+"""
+macro def_rules(stage::Symbol, T::Union{Symbol,Expr}, In::Union{Symbol,Expr}, rules::Expr...)
     @assert stage == :pre || stage == :post "Expected pre or post value for rule stage, got $stage instead"
 
-    fn_body = Expr(:block)
+    fn_body = []
 
     for rule in rules
         Base.remove_linenums!(rule)
@@ -22,29 +46,38 @@ macro def_rules(stage::Symbol, T::Symbol, In::Symbol, rules::Expr...)
             end
         end
 
-        push!(fn_body.args, if_block)
+        push!(fn_body, if_block)
     end
 
-    push!(fn_body.args, :(return nothing))
+    push!(fn_body, :(return nothing))
 
     fn_name = Symbol(stage, "_rule_match")
-    fn_arg1 = Expr(:(::), Expr(:curly, :Type, esc(T)))
-    fn_arg2 = Expr(:(::), :val, esc(In))
 
-    fn_def = Expr(
-        :function,
-        Expr(:call, fn_name, fn_arg1, fn_arg2),
-        fn_body
-    )
-
-    Base.remove_linenums!(fn_def)
-    esc(fn_def)
+    quote
+        function Tagger.$fn_name(::Type{$(esc(T))}, val::$(esc(In)))
+            $(fn_body...)
+        end
+    end
 end
 
+"""
+    @def_pre_rules TagType InputType rules...
+
+Shorthand for calling [`@def_tagtype`](@ref) with the `pre` argument for the stage param.
+"""
 macro def_pre_rules(T::Symbol, In::Symbol, rules::Expr...)
-    :(@def_rules pre $T $In $(rules...))
+    esc(quote
+        @def_rules(pre, $T, $In, $(rules...))
+    end)
 end
 
+"""
+    @def_post_rules TagType InputType rules...
+
+Shorthand for calling [`@def_tagtype`](@ref) with the `post` argument for the stage param.
+"""
 macro def_post_rules(T::Symbol, In::Symbol, rules::Expr...)
-    :(@def_rules post $T $In $(rules...))
+    esc(quote
+        @def_rules(post, $T, $In, $(rules...))
+    end)
 end

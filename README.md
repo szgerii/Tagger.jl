@@ -16,7 +16,7 @@ using Tagger
 
 # definition of concrete tags
 struct ReturnNode <: ExprNode end
-struct ForNode <: ExprNode end
+struct LoopNode <: ExprNode end
 struct CallNodeNoArgs <: ExprNode end
 struct CallNodeWithArgs <: ExprNode end
 
@@ -27,9 +27,9 @@ Tagger.get_eq_projection(::Type{ExprNode}, ::Type{Expr}) = (ex::Expr) -> ex.head
 # set up equality rules (if an expression's head is the left-side value, it will receive right-side tag)
 @def_eqs(
     ExprNode,
-    (:return, ReturnNode),
-    (:for, ForNode),
-    (:call, CallNodeWithArgs)
+    (ReturnNode, :return),
+    (LoopNode, :for, :while),
+    (CallNodeWithArgs, :call)
 )
 
 # define a pre-rule (checked before equality comparison) to catch no arg function calls before they are resolved based on the above :call -> CallNodeWithArgs equality rule
@@ -42,7 +42,7 @@ Tagger.get_eq_projection(::Type{ExprNode}, ::Type{Expr}) = (ex::Expr) -> ex.head
 # define transformation methods for specific tags
 
 transform(expr::Expr, ::Type{ReturnNode}) = # process return expr...
-transform(expr::Expr, ::Type{ForNode}) = # process for expr...
+transform(expr::Expr, ::Type{LoopNode}) = # process for expr...
 transform(expr::Expr, ::Type{CallNodeNoArgs}) = # process parameterless fn call...
 transform(expr::Expr, ::Type{CallNodeWithArgs}) = # process parameterized fn call...
 transform(expr::Expr, ::Type{DefaultExpr}) = println("Unsupported expression: $expr")
@@ -51,7 +51,7 @@ transform(expr::Expr, ::Type{DefaultExpr}) = println("Unsupported expression: $e
 
 # this will call the transform functions defined above in the order they are defined
 
-exprs = [:(return 12), :(for i in 1:5 println(i) end), :(time()), :(println("text")), :(while true println("text") end)]
+exprs = [:(return 12), :(for i in 1:5 println(i) end), :(time()), :(println("text")), :(if true println("text") end)]
 
 for expr in exprs
     transform(expr, tag_match(ExprNode, expr))
@@ -205,13 +205,13 @@ After the projection, it's then matched through a set of equality rules that can
 ```julia
 @def_eqs(
     ExprNode,
-    (:call, CallNode),
-    (:return, ReturnNode),
-    (:for, ForNode)
+    (CallNode, :call),
+    (ReturnNode, :return),
+    (LoopNode, :for, :while)
 )
 ```
 
-These simply mean that whenever the matching system encounters a projected value of `:head` for example, it will automatically be resolved to a CallNode tag.
+These simply mean that whenever the matching system encounters a projected value of `:call` for example, it will automatically be resolved to a CallNode tag. Multiple values can be provided in a single tuple for a single tag (like in the LoopNode example).
 
 ## Limitations
 
@@ -276,16 +276,17 @@ The expansion looks something like:
 ```julia
 @def_eqs(
     ExprNode,
-    (:return, ReturnNode),
-    (:for, ForNode),
-    (:call, CallNode)
+    (ReturnNode, :return),
+    (LoopNode, :for, :while),
+    (CallNode, :call)
 )
 
 # this roughly expands to:
 
 begin
     eq_match(::Type{ExprNode}, ::Type{Val{:return}}) = ReturnNode
-    eq_match(::Type{ExprNode}, ::Type{Val{:for}}) = ForNode
+    eq_match(::Type{ExprNode}, ::Type{Val{:for}}) = LoopNode
+    eq_match(::Type{ExprNode}, ::Type{Val{:while}}) = LoopNode
     eq_match(::Type{ExprNode}, ::Type{Val{:call}}) = CallNode
 end
 ```
