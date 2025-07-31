@@ -24,7 +24,7 @@ struct CallNodeWithArgs <: ExprNode end
 # NOTE: this is for demonstration purposes only. matching on the head field is the default behavior for Expr equality checks so normally it doesn't have to be specified explicitly like this
 Tagger.get_eq_projection(::Type{ExprNode}, ::Type{Expr}) = (ex::Expr) -> ex.head
 
-# set up equality rules (if an expression's head is the left-side value, it will receive right-side tag)
+# set up equality rules (if an expression's head is one of the right-side values, it will receive the left-side tag)
 @def_eqs(
     ExprNode,
     (ReturnNode, :return),
