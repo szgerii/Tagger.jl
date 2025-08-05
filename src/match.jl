@@ -58,9 +58,11 @@ function tag_match(::Type{T}, val::V)::Union{Type{<:T},Nothing} where {T<:TagTyp
     eq_proj = get_eq_projection(T, V)
     eqval = eq_proj(val)
 
-    result = eq_match(T, Val{eqval})
-    if !isnothing(result)
-        return result
+    if isbits(eqval) || eqval isa Symbol
+        result = eq_match(T, Val{eqval})
+        if !isnothing(result)
+            return result
+        end
     end
 
     # POST-RULES
