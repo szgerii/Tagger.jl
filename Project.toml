@@ -1,6 +1,6 @@
 name = "Tagger"
 uuid = "733a735c-17b3-4329-8b81-ea0597397936"
-authors = ["Szűcs Gergely <szucsi1104@gmail.com>"]
+authors = ["Szűcs Gergely <p6odrh@inf.elte.hu>"]
 version = "1.0.0"
 
 [deps]
